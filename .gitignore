@@ -224,3 +224,7 @@ dist/
 # Environment variables
 .env.local
 .env.*.local
+
+# FundScope datasets
+backend/data/raw/
+backend/data/processed/
