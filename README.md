@@ -132,15 +132,23 @@ uvicorn app.main:app --reload
 
 ## Data Sources
 
-FundScope is designed to work with **official Indian government sources**, including:
+FundScope uses **official Indian government sources** as the foundation for
+its financial data and supporting evidence.
 
-* Reserve Bank of India
-* Government of India Open Government Data Platform
-* Ministry and department budget documents
-* Official government statistical datasets
-* Government policy and audit publications
+The initial financial dataset is sourced from the **Reserve Bank of India's
+e-STATES Database**, which provides state/UT government finance data across
+multiple fiscal years.
 
-Each dataset and document is intended to retain its original source information so that users can trace insights back to official evidence.
+As the project evolves, FundScope will incorporate additional official
+sources, including:
+
+- Government of India Open Government Data Platform
+- Ministry and department budget documents
+- Official government statistical datasets
+- Government policy and audit publications
+
+Each dataset and document is intended to retain its original source
+information so that users can trace insights back to official evidence.
 
 ## Data & AI Principles
 
