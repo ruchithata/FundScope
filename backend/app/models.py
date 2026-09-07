@@ -36,16 +36,6 @@ class DataSource(Base):
 class SpendingRecord(Base):
     __tablename__ = "spending_records"
 
-    __table_args__ = (
-        UniqueConstraint(
-            "state_id",
-            "budget_head_id",
-            "source_id",
-            "fiscal_year",
-            name="uq_spending_record",
-        ),
-    )
-
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     state_id: Mapped[int] = mapped_column(ForeignKey("states.id"), nullable=False)
     budget_head_id: Mapped[int] = mapped_column(
