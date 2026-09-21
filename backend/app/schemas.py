@@ -16,15 +16,21 @@ class DataQualityResponse(BaseModel):
 
 
 class StateResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
 
 
 class FiscalYearResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     fiscal_year: str
 
 
 class BudgetHeadResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     appendix: str
