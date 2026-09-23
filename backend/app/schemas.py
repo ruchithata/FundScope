@@ -1,11 +1,10 @@
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 
 class DataQualityResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-
     source_id: int
     total_records: int
     missing_account: int
@@ -17,26 +16,24 @@ class DataQualityResponse(BaseModel):
 
 class StateResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-
     id: int
     name: str
 
 
 class FiscalYearResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-
     fiscal_year: str
 
 
 class BudgetHeadResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-
     id: int
     name: str
     appendix: str
 
 
 class SpendingRecordResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     id: int
     state_id: int
     budget_head_id: int
@@ -73,6 +70,9 @@ class SpendingTrendResponse(BaseModel):
     items: list[SpendingTrendItem]
 
 
-class PaginationParams(BaseModel):
-    page: int = Field(default=1, ge=1)
-    page_size: int = Field(default=50, ge=1, le=500)
+class ErrorResponse(BaseModel):
+    detail: str
+
+
+class HealthResponse(BaseModel):
+    status: str
