@@ -6,14 +6,26 @@ import "./index.css";
 const fmt = (value) => {
   if (value == null || value === "") return "—";
 
-  const number = Number(value);
+  const n = Number(value);
 
-  return Number.isFinite(number)
+  return Number.isFinite(n)
     ? new Intl.NumberFormat("en-IN", {
         maximumFractionDigits: 2,
-        notation: Math.abs(number) >= 1e9 ? "compact" : "standard",
-      }).format(number)
+        notation: Math.abs(n) >= 1e9 ? "compact" : "standard",
+      }).format(n)
     : "—";
+};
+
+const fmtDate = (value) => {
+  if (!value) return "Not recorded";
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime())
+    ? "Not recorded"
+    : new Intl.DateTimeFormat("en-IN", {
+        dateStyle: "medium",
+      }).format(date);
 };
 
 const cats = [
@@ -30,7 +42,7 @@ function Field({ label, value, onChange, children, disabled = false }) {
       <span>{label}</span>
       <select
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
       >
         {children}
@@ -76,8 +88,8 @@ function Chart({ items, loading }) {
   const low = Math.min(0, ...values);
   const high = Math.max(1, ...values);
 
-  const x = (index) =>
-    rows.length === 1 ? 400 : 42 + (index * 716) / (rows.length - 1);
+  const x = (i) =>
+    rows.length === 1 ? 400 : 42 + (i * 716) / (rows.length - 1);
 
   const y = (value) =>
     18 + ((high - value) / (high - low || 1)) * 220;
@@ -102,20 +114,20 @@ function Chart({ items, loading }) {
 
         {[0, 1, 2, 3, 4].map((tick) => {
           const value = high - ((high - low) * tick) / 4;
-          const yPosition = 18 + 55 * tick;
+          const yp = 18 + 55 * tick;
 
           return (
             <g key={tick}>
               <line
                 x1="42"
                 x2="758"
-                y1={yPosition}
-                y2={yPosition}
+                y1={yp}
+                y2={yp}
                 stroke="#edf0ee"
               />
               <text
                 x="34"
-                y={yPosition + 4}
+                y={yp + 4}
                 textAnchor="end"
                 className="axis"
               >
@@ -130,8 +142,8 @@ function Chart({ items, loading }) {
             key={item[0]}
             points={rows
               .map(
-                (row, index) =>
-                  `${x(index)},${y(Number(row[item[0]]) || 0)}`
+                (row, i) =>
+                  `${x(i)},${y(Number(row[item[0]]) || 0)}`
               )
               .join(" ")}
             fill="none"
@@ -142,12 +154,12 @@ function Chart({ items, loading }) {
           />
         ))}
 
-        {rows.map((row, index) =>
-          index % Math.max(1, Math.ceil(rows.length / 8)) === 0 ||
-          index === rows.length - 1 ? (
+        {rows.map((row, i) =>
+          i % Math.max(1, Math.ceil(rows.length / 8)) === 0 ||
+          i === rows.length - 1 ? (
             <text
-              key={`${row.fiscal_year}-${index}`}
-              x={x(index)}
+              key={`${row.fiscal_year}-${i}`}
+              x={x(i)}
               y="260"
               textAnchor="middle"
               className="axis"
@@ -166,6 +178,177 @@ function Chart({ items, loading }) {
   );
 }
 
+function ProvenanceQuality({ sources, quality, loading, error }) {
+  if (loading) {
+    return (
+      <div className="provenance-state" role="status">
+        Loading source and data-quality metadata…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="provenance-state provenance-error" role="alert">
+        {error}
+      </div>
+    );
+  }
+
+  if (!sources.length && !quality.length) {
+    return (
+      <div className="provenance-state">
+        Source metadata and quality metrics have not been recorded for this
+        dataset yet.
+      </div>
+    );
+  }
+
+  const qualityBySource = new Map(
+    quality.map((item) => [String(item.source_id), item])
+  );
+
+  return (
+    <div className="source-grid">
+      {sources.map((source) => {
+        const q = qualityBySource.get(String(source.id));
+
+        const missing = q
+          ? Number(q.missing_account || 0) +
+            Number(q.missing_revised || 0) +
+            Number(q.missing_budget || 0)
+          : null;
+
+        return (
+          <article className="source-card" key={source.id}>
+            <div className="source-card-head">
+              <span className="source-icon" aria-hidden="true">
+                ↗
+              </span>
+              <span className="source-type">RECORDED DATA SOURCE</span>
+            </div>
+
+            <h3>
+              {source.name || source.dataset_name || "Unnamed source"}
+            </h3>
+
+            <p className="source-dataset">
+              {source.dataset_name || "Dataset name not recorded"}
+            </p>
+
+            <dl className="source-details">
+              <div>
+                <dt>Publisher</dt>
+                <dd>{source.publisher || "Not recorded"}</dd>
+              </div>
+
+              <div>
+                <dt>Retrieved</dt>
+                <dd>{fmtDate(source.retrieved_at)}</dd>
+              </div>
+
+              <div>
+                <dt>Methodology</dt>
+                <dd>
+                  {source.methodology || "No methodology note recorded."}
+                </dd>
+              </div>
+            </dl>
+
+            {source.source_url ? (
+              <a
+                className="source-link"
+                href={source.source_url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Open original source{" "}
+                <span aria-hidden="true">↗</span>
+              </a>
+            ) : (
+              <span className="muted">Source URL not recorded</span>
+            )}
+
+            <div className="quality-divider" />
+
+            <h4>Data quality snapshot</h4>
+
+            {q ? (
+              <>
+                <div className="quality-score-row">
+                  <span>Stored quality score</span>
+                  <strong>{fmt(q.quality_score)}</strong>
+                </div>
+
+                <div className="quality-stats">
+                  <div>
+                    <strong>{fmt(q.total_records)}</strong>
+                    <span>Records</span>
+                  </div>
+
+                  <div>
+                    <strong>{fmt(missing)}</strong>
+                    <span>Missing numeric values*</span>
+                  </div>
+
+                  <div>
+                    <strong>{fmt(q.duplicate_records)}</strong>
+                    <span>Duplicate records</span>
+                  </div>
+                </div>
+
+                <details className="quality-breakdown">
+                  <summary>Missing-value breakdown</summary>
+                  <ul>
+                    <li>Account: {fmt(q.missing_account)}</li>
+                    <li>Revised: {fmt(q.missing_revised)}</li>
+                    <li>Budget: {fmt(q.missing_budget)}</li>
+                  </ul>
+                </details>
+
+                <p className="note">
+                  * Sum of stored missing-value counts across Account,
+                  Revised and Budget. The UI displays the stored quality
+                  score without inferring its formula.
+                </p>
+              </>
+            ) : (
+              <p className="muted">
+                No quality metrics are recorded for this source.
+              </p>
+            )}
+          </article>
+        );
+      })}
+
+      {!sources.length &&
+        quality.map((q) => (
+          <article className="source-card" key={q.source_id}>
+            <h3>Quality metrics for source #{q.source_id}</h3>
+            <p className="muted">Source metadata is unavailable.</p>
+
+            <div className="quality-stats">
+              <div>
+                <strong>{fmt(q.total_records)}</strong>
+                <span>Records</span>
+              </div>
+
+              <div>
+                <strong>{fmt(q.duplicate_records)}</strong>
+                <span>Duplicate records</span>
+              </div>
+
+              <div>
+                <strong>{fmt(q.quality_score)}</strong>
+                <span>Stored quality score</span>
+              </div>
+            </div>
+          </article>
+        ))}
+    </div>
+  );
+}
+
 export default function App() {
   const [states, setStates] = useState([]);
   const [years, setYears] = useState([]);
@@ -176,6 +359,12 @@ export default function App() {
 
   const [summary, setSummary] = useState(null);
   const [trends, setTrends] = useState([]);
+
+  const [sources, setSources] = useState([]);
+  const [quality, setQuality] = useState([]);
+
+  const [provLoading, setProvLoading] = useState(true);
+  const [provError, setProvError] = useState("");
 
   const [optionsLoadedKey, setOptionsLoadedKey] = useState(null);
   const [optionsFailed, setOptionsFailed] = useState(null);
@@ -189,12 +378,10 @@ export default function App() {
   const dataKey = JSON.stringify([state, year, cat, reload]);
 
   const optionsBusy =
-    optionsLoadedKey !== optionsKey &&
-    optionsFailed !== optionsKey;
+    optionsLoadedKey !== optionsKey && optionsFailed !== optionsKey;
 
   const busy =
-    dataLoadedKey !== dataKey &&
-    dataFailed?.key !== dataKey;
+    dataLoadedKey !== dataKey && dataFailed?.key !== dataKey;
 
   const error =
     (optionsFailed === optionsKey
@@ -202,6 +389,14 @@ export default function App() {
       : "") ||
     (dataFailed?.key === dataKey ? dataFailed.message : "");
 
+  // Shared refresh handler for the dashboard and provenance data.
+  const refreshDashboard = () => {
+    setProvLoading(true);
+    setProvError("");
+    setReload((value) => value + 1);
+  };
+
+  // Load state and fiscal-year filter options.
   useEffect(() => {
     const controller = new AbortController();
 
@@ -215,9 +410,10 @@ export default function App() {
         setStates(stateData);
         setYears(yearData);
         setOptionsLoadedKey(optionsKey);
+        setOptionsFailed(null);
       })
-      .catch((error) => {
-        if (!controller.signal.aborted && error.name !== "AbortError") {
+      .catch((e) => {
+        if (!controller.signal.aborted && e.name !== "AbortError") {
           setOptionsFailed(optionsKey);
         }
       });
@@ -225,6 +421,7 @@ export default function App() {
     return () => controller.abort();
   }, [optionsKey]);
 
+  // Load summary and multi-year trend data.
   useEffect(() => {
     const controller = new AbortController();
 
@@ -251,15 +448,57 @@ export default function App() {
         setSummary(summaryData);
         setTrends(trendData.items || []);
         setDataLoadedKey(dataKey);
+        setDataFailed(null);
       })
-      .catch((error) => {
-        if (!controller.signal.aborted && error.name !== "AbortError") {
-          setDataFailed({ key: dataKey, message: error.message });
+      .catch((e) => {
+        if (!controller.signal.aborted && e.name !== "AbortError") {
+          setDataFailed({
+            key: dataKey,
+            message: e.message,
+          });
         }
       });
 
     return () => controller.abort();
   }, [state, year, cat, dataKey]);
+
+  // Load source provenance and data-quality metadata.
+  // Do not synchronously update loading state inside this effect.
+  useEffect(() => {
+    const controller = new AbortController();
+
+    Promise.all([
+      api.dataSources(controller.signal),
+      api.dataQuality(controller.signal),
+    ])
+      .then(([sourceData, qualityData]) => {
+        if (controller.signal.aborted) return;
+
+        if (
+          !Array.isArray(sourceData) ||
+          !Array.isArray(qualityData)
+        ) {
+          throw new Error(
+            "Unexpected source or data-quality response from API."
+          );
+        }
+
+        setSources(sourceData);
+        setQuality(qualityData);
+        setProvError("");
+        setProvLoading(false);
+      })
+      .catch((e) => {
+        if (!controller.signal.aborted && e.name !== "AbortError") {
+          setProvError(
+            e.message || "Unable to load source metadata."
+          );
+          setProvLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [reload]);
 
   const selectedState =
     states.find((item) => String(item.id) === state)?.name ||
@@ -281,8 +520,13 @@ export default function App() {
         <a className="nav active" href="#overview">
           ▦ Overview
         </a>
+
         <a className="nav" href="#trends">
           ⌁ Spending trends
+        </a>
+
+        <a className="nav" href="#provenance">
+          ◎ Data provenance
         </a>
 
         <div className="sidebottom">
@@ -306,7 +550,7 @@ export default function App() {
             </p>
           </div>
 
-          <button onClick={() => setReload((value) => value + 1)}>
+          <button onClick={refreshDashboard}>
             ↻ <span>Refresh</span>
           </button>
         </section>
@@ -348,21 +592,18 @@ export default function App() {
               disabled={optionsBusy}
             >
               <option value="">All fiscal years</option>
-              {years.map((item) => {
-                const fiscalYear =
-                  typeof item === "string" ? item : item?.fiscal_year;
-
-                if (!fiscalYear) return null;
-
-                return (
-                  <option key={fiscalYear} value={fiscalYear}>
-                    {fiscalYear}
-                  </option>
-                );
-              })}
+              {years.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
             </Field>
 
-            <Field label="Budget category" value={cat} onChange={setCat}>
+            <Field
+              label="Budget category"
+              value={cat}
+              onChange={setCat}
+            >
               {cats.map((item) => (
                 <option key={item[0]} value={item[0]}>
                   {item[1]}
@@ -378,9 +619,7 @@ export default function App() {
               <b>We couldn't load the dashboard.</b>
               <p>{error}</p>
             </div>
-            <button onClick={() => setReload((value) => value + 1)}>
-              Try again
-            </button>
+            <button onClick={refreshDashboard}>Try again</button>
           </div>
         )}
 
@@ -390,8 +629,10 @@ export default function App() {
               <h2>Key indicators</h2>
               <p>Aggregated values for the selected records</p>
             </div>
+
             <span>
-              {selectedState} · {selectedCategory}
+              {selectedState}
+              {selectedCategory ? ` · ${selectedCategory}` : ""}
             </span>
           </div>
 
@@ -402,18 +643,21 @@ export default function App() {
               note="Matching source records"
               icon="▤"
             />
+
             <Metric
               label="Account"
               value={busy ? "…" : fmt(summary?.total_account)}
               note="Actual account values"
               icon="₹"
             />
+
             <Metric
               label="Revised"
               value={busy ? "…" : fmt(summary?.total_revised)}
               note="Revised estimates"
               icon="↗"
             />
+
             <Metric
               label="Budget"
               value={busy ? "…" : fmt(summary?.total_budget)}
@@ -427,8 +671,11 @@ export default function App() {
           <div className="sectiontitle">
             <div>
               <h2>Spending over time</h2>
-              <p>Annual aggregates across the selected state and category</p>
+              <p>
+                Annual aggregates across the selected state and category
+              </p>
             </div>
+
             <span>{year || "All available years"}</span>
           </div>
 
@@ -437,9 +684,30 @@ export default function App() {
           </article>
         </section>
 
+        <section className="block" id="provenance">
+          <div className="sectiontitle">
+            <div>
+              <h2>Data provenance &amp; quality</h2>
+              <p>
+                Source metadata and recorded ingestion checks for
+                transparency
+              </p>
+            </div>
+
+            <span>Source-backed metadata</span>
+          </div>
+
+          <ProvenanceQuality
+            sources={sources}
+            quality={quality}
+            loading={provLoading}
+            error={provError}
+          />
+        </section>
+
         <footer>
-          FundScope · Data-led public finance exploration
-          <span>Source: RBI e-STATES Database</span>
+          <span>FundScope · Data-led public finance exploration</span>
+          <span>Source metadata is shown as recorded in the database.</span>
         </footer>
       </main>
     </div>
