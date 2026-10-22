@@ -66,6 +66,7 @@ def sample_data(db_session: Session):
 
     karnataka = State(name="Karnataka")
     kerala = State(name="Kerala")
+    aggregate = State(name="All States/UT")
 
     revenue_head = BudgetHead(
         name="Tax Revenue",
@@ -78,7 +79,7 @@ def sample_data(db_session: Session):
     )
 
     db_session.add_all(
-        [source, karnataka, kerala, revenue_head, expenditure_head]
+        [source, karnataka, kerala, aggregate, revenue_head, expenditure_head]
     )
     db_session.flush()
 
@@ -110,6 +111,17 @@ def sample_data(db_session: Session):
             revised=Decimal("220"),
             budget=Decimal("250"),
         ),
+        # Deliberately large aggregate values make accidental double-counting
+        # visible in the tests. This row should be included only when selected.
+        SpendingRecord(
+            state_id=aggregate.id,
+            budget_head_id=revenue_head.id,
+            source_id=source.id,
+            fiscal_year="2025-2026",
+            account=Decimal("999"),
+            revised=Decimal("1099"),
+            budget=Decimal("1199"),
+        ),
     ]
 
     db_session.add_all(records)
@@ -119,6 +131,7 @@ def sample_data(db_session: Session):
         "source": source,
         "karnataka": karnataka,
         "kerala": kerala,
+        "aggregate": aggregate,
         "revenue_head": revenue_head,
         "expenditure_head": expenditure_head,
     }
@@ -136,9 +149,12 @@ def test_list_states(client: TestClient, sample_data):
     assert response.status_code == 200
     data = response.json()
 
-    assert len(data) == 2
-    assert data[0]["name"] == "Karnataka"
-    assert data[1]["name"] == "Kerala"
+    assert len(data) == 3
+    assert [item["name"] for item in data] == [
+        "All States/UT",
+        "Karnataka",
+        "Kerala",
+    ]
 
 
 def test_list_fiscal_years(client: TestClient, sample_data):
@@ -182,6 +198,7 @@ def test_list_spending_with_pagination(
     client: TestClient,
     sample_data,
 ):
+    # The aggregate row is excluded from unfiltered results.
     response = client.get(
         "/api/spending",
         params={"page": 1, "page_size": 2},
@@ -195,6 +212,10 @@ def test_list_spending_with_pagination(
     assert data["page_size"] == 2
     assert data["total_pages"] == 2
     assert len(data["items"]) == 2
+    assert all(
+        item["state_id"] != sample_data["aggregate"].id
+        for item in data["items"]
+    )
 
 
 def test_filter_spending_by_state(
@@ -235,6 +256,37 @@ def test_spending_summary(
     assert Decimal(data["total_budget"]) == Decimal("220")
 
 
+def test_unfiltered_summary_excludes_aggregate_row(
+    client: TestClient,
+    sample_data,
+):
+    response = client.get("/api/summary")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_records"] == 3
+    assert Decimal(data["total_account"]) == Decimal("380")
+    assert Decimal(data["total_revised"]) == Decimal("420")
+    assert Decimal(data["total_budget"]) == Decimal("470")
+
+
+def test_selected_aggregate_state_is_still_available(
+    client: TestClient,
+    sample_data,
+):
+    response = client.get(
+        "/api/summary",
+        params={"state_id": sample_data["aggregate"].id},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_records"] == 1
+    assert Decimal(data["total_account"]) == Decimal("999")
+    assert Decimal(data["total_revised"]) == Decimal("1099")
+    assert Decimal(data["total_budget"]) == Decimal("1199")
+
+
 def test_spending_trends(
     client: TestClient,
     sample_data,
@@ -254,6 +306,20 @@ def test_spending_trends(
 
     assert data["items"][1]["fiscal_year"] == "2024-2025"
     assert Decimal(data["items"][1]["total_account"]) == Decimal("80")
+
+
+def test_unfiltered_trends_exclude_aggregate_row(
+    client: TestClient,
+    sample_data,
+):
+    response = client.get("/api/trends")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["items"]) == 2
+    assert Decimal(data["items"][0]["total_account"]) == Decimal("300")
+    assert Decimal(data["items"][0]["total_revised"]) == Decimal("330")
+    assert Decimal(data["items"][0]["total_budget"]) == Decimal("370")
 
 
 def test_invalid_pagination_is_rejected(client: TestClient):
