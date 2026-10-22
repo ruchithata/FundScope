@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -32,14 +33,22 @@ class DataSource(Base):
 
 class SpendingRecord(Base):
     __tablename__ = "spending_records"
+
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     state_id: Mapped[int] = mapped_column(ForeignKey("states.id"), nullable=False)
     budget_head_id: Mapped[int] = mapped_column(ForeignKey("budget_heads.id"), nullable=False)
     source_id: Mapped[int] = mapped_column(ForeignKey("data_sources.id"), nullable=False)
     fiscal_year: Mapped[str] = mapped_column(String(20), nullable=False)
-    account: Mapped[float | None] = mapped_column(Numeric, nullable=True)
-    revised: Mapped[float | None] = mapped_column(Numeric, nullable=True)
-    budget: Mapped[float | None] = mapped_column(Numeric, nullable=True)
+
+    account: Mapped[Decimal | None] = mapped_column(
+        Numeric(precision=30, scale=9), nullable=True
+    )
+    revised: Mapped[Decimal | None] = mapped_column(
+        Numeric(precision=30, scale=9), nullable=True
+    )
+    budget: Mapped[Decimal | None] = mapped_column(
+        Numeric(precision=30, scale=9), nullable=True
+    )
 
 
 class DataQuality(Base):
