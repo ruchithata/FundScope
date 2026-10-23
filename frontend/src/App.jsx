@@ -372,6 +372,9 @@ export default function App() {
   const [dataLoadedKey, setDataLoadedKey] = useState(null);
   const [dataFailed, setDataFailed] = useState(null);
 
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
+
   const [reload, setReload] = useState(0);
 
   const optionsKey = String(reload);
@@ -395,6 +398,55 @@ export default function App() {
     setProvError("");
     setReload((value) => value + 1);
   };
+
+  const exportCsv = async () => {
+  setExporting(true);
+  setExportError("");
+
+  try {
+    const params = new URLSearchParams();
+
+    if (state) params.set("state_id", state);
+    if (year) params.set("fiscal_year", year);
+    if (cat) params.set("appendix", cat);
+
+    const baseUrl = (
+      import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000"
+    ).replace(/\/+$/, "");
+
+    const query = params.toString();
+    const url = `${baseUrl}/api/spending/export.csv${
+      query ? `?${query}` : ""
+    }`;
+
+    const response = await fetch(url, {
+      headers: { Accept: "text/csv" },
+    });
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new Error(
+        body?.detail || `Export failed (HTTP ${response.status}).`
+      );
+    }
+
+    const blob = await response.blob();
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = downloadUrl;
+    link.download = "fundscope-spending.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+  } catch (error) {
+    setExportError(error.message || "Unable to export CSV. Please try again.");
+  } finally {
+    setExporting(false);
+  }
+};
 
   // Load state and fiscal-year filter options.
   useEffect(() => {
@@ -541,6 +593,7 @@ export default function App() {
           <span className="live">● Live data connection</span>
         </header>
 
+        
         <section className="heading">
           <div>
             <small>PUBLIC FINANCE INTELLIGENCE</small>
@@ -550,10 +603,33 @@ export default function App() {
             </p>
           </div>
 
-          <button onClick={refreshDashboard}>
-            ↻ <span>Refresh</span>
-          </button>
+          <div className="heading-actions">
+            <button
+              type="button"
+              onClick={exportCsv}
+              disabled={exporting}
+              aria-busy={exporting}
+            >
+              {exporting ? "Preparing CSV…" : "↓ Export CSV"}
+            </button>
+
+            <button type="button" onClick={refreshDashboard}>
+              ↻ <span>Refresh</span>
+            </button>
+          </div>
         </section>
+
+        {exportError && (
+          <div className="error" role="alert">
+            <div>
+              <b>CSV export failed.</b>
+              <p>{exportError}</p>
+            </div>
+            <button type="button" onClick={exportCsv} disabled={exporting}>
+              Try again
+            </button>
+          </div>
+        )}
 
         <section className="filters">
           <div className="filterhead">
