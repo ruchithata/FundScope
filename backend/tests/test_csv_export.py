@@ -107,3 +107,17 @@ def test_csv_export_applies_filters(client: TestClient, sample_data):
 def test_csv_export_rejects_invalid_filters(client: TestClient):
     response = client.get("/api/spending/export.csv", params={"state_id": 0})
     assert response.status_code == 422
+
+
+def test_csv_export_preserves_negative_financial_values(client, db_session, sample_data):
+    record = db_session.query(SpendingRecord).first()
+    record.account = Decimal("-125.50")
+    db_session.commit()
+
+    response = client.get("/api/spending/export.csv")
+
+    assert response.status_code == 200
+
+    csv_text = response.content.decode("utf-8-sig")
+    assert "-125.50" in csv_text
+    assert "'-125.50" not in csv_text

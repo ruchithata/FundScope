@@ -113,14 +113,13 @@ def export_spending_csv(
         # cells to reduce formula execution risk when opened in spreadsheet apps.
         safe_values = []
         for value in values:
-            value = _csv_value(value)
-
+            # Sanitize textual cells, but preserve numeric financial values.
             if isinstance(value, str) and value.lstrip().startswith(
                 ("=", "+", "-", "@")
             ):
                 value = "'" + value
 
-            safe_values.append(value)
+            safe_values.append(_csv_value(value))
 
         writer.writerow(safe_values)
 

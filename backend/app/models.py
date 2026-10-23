@@ -41,13 +41,13 @@ class SpendingRecord(Base):
     fiscal_year: Mapped[str] = mapped_column(String(20), nullable=False)
 
     account: Mapped[Decimal | None] = mapped_column(
-        Numeric(precision=30, scale=9), nullable=True
+        Numeric, nullable=True
     )
     revised: Mapped[Decimal | None] = mapped_column(
-        Numeric(precision=30, scale=9), nullable=True
+        Numeric, nullable=True
     )
     budget: Mapped[Decimal | None] = mapped_column(
-        Numeric(precision=30, scale=9), nullable=True
+        Numeric, nullable=True
     )
 
 
