@@ -1,9 +1,11 @@
+
 import { useEffect, useState } from "react";
 import { api } from "./api";
 import Chart from "./components/Chart";
 import Field from "./components/Field";
 import Metric from "./components/Metric";
 import ProvenanceQuality from "./components/ProvenanceQuality";
+import StateComparison from "./components/StateComparison";
 import { fmt } from "./utils/formatters";
 import "./index.css";
 
@@ -37,9 +39,13 @@ export default function App() {
 
   const optionsKey = String(reload);
   const dataKey = JSON.stringify([state, year, cat, reload]);
+
   const optionsBusy =
     optionsLoadedKey !== optionsKey && optionsFailed !== optionsKey;
-  const busy = dataLoadedKey !== dataKey && dataFailed?.key !== dataKey;
+
+  const busy =
+    dataLoadedKey !== dataKey && dataFailed?.key !== dataKey;
+
   const error =
     (optionsFailed === optionsKey
       ? "Unable to load dashboard filters. Please try again."
@@ -58,6 +64,7 @@ export default function App() {
 
     try {
       const params = new URLSearchParams();
+
       if (state) params.set("state_id", state);
       if (year) params.set("fiscal_year", year);
       if (cat) params.set("appendix", cat);
@@ -65,16 +72,19 @@ export default function App() {
       const baseUrl = (
         import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000"
       ).replace(/\/+$/, "");
+
       const query = params.toString();
       const url = `${baseUrl}/api/spending/export.csv${
         query ? `?${query}` : ""
       }`;
+
       const response = await fetch(url, {
         headers: { Accept: "text/csv" },
       });
 
       if (!response.ok) {
         const body = await response.json().catch(() => null);
+
         throw new Error(
           body?.detail || `Export failed (HTTP ${response.status}).`
         );
@@ -83,14 +93,19 @@ export default function App() {
       const blob = await response.blob();
       const downloadUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
+
       link.href = downloadUrl;
       link.download = "fundscope-spending.csv";
+
       document.body.appendChild(link);
       link.click();
       link.remove();
+
       window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
     } catch (e) {
-      setExportError(e.message || "Unable to export CSV. Please try again.");
+      setExportError(
+        e.message || "Unable to export CSV. Please try again."
+      );
     } finally {
       setExporting(false);
     }
@@ -100,7 +115,10 @@ export default function App() {
   useEffect(() => {
     const controller = new AbortController();
 
-    Promise.all([api.states(controller.signal), api.years(controller.signal)])
+    Promise.all([
+      api.states(controller.signal),
+      api.years(controller.signal),
+    ])
       .then(([stateData, yearData]) => {
         if (controller.signal.aborted) return;
 
@@ -124,11 +142,18 @@ export default function App() {
 
     Promise.all([
       api.summary(
-        { state_id: state, fiscal_year: year, appendix: cat },
+        {
+          state_id: state,
+          fiscal_year: year,
+          appendix: cat,
+        },
         controller.signal
       ),
       api.trends(
-        { state_id: state, appendix: cat },
+        {
+          state_id: state,
+          appendix: cat,
+        },
         controller.signal
       ),
     ])
@@ -142,7 +167,10 @@ export default function App() {
       })
       .catch((e) => {
         if (!controller.signal.aborted && e.name !== "AbortError") {
-          setDataFailed({ key: dataKey, message: e.message });
+          setDataFailed({
+            key: dataKey,
+            message: e.message,
+          });
         }
       });
 
@@ -160,7 +188,10 @@ export default function App() {
       .then(([sourceData, qualityData]) => {
         if (controller.signal.aborted) return;
 
-        if (!Array.isArray(sourceData) || !Array.isArray(qualityData)) {
+        if (
+          !Array.isArray(sourceData) ||
+          !Array.isArray(qualityData)
+        ) {
           throw new Error(
             "Unexpected source or data-quality response from API."
           );
@@ -173,7 +204,9 @@ export default function App() {
       })
       .catch((e) => {
         if (!controller.signal.aborted && e.name !== "AbortError") {
-          setProvError(e.message || "Unable to load source metadata.");
+          setProvError(
+            e.message || "Unable to load source metadata."
+          );
           setProvLoading(false);
         }
       });
@@ -184,7 +217,9 @@ export default function App() {
   const selectedState =
     states.find((item) => String(item.id) === state)?.name ||
     "All states / UTs";
-  const selectedCategory = cats.find((item) => item[0] === cat)?.[1] || "";
+
+  const selectedCategory =
+    cats.find((item) => item[0] === cat)?.[1] || "";
 
   return (
     <div className="shell">
@@ -192,16 +227,26 @@ export default function App() {
         <a className="brand" href="/">
           <i>F</i>Fund<span>Scope</span>
         </a>
+
         <small className="navlabel">WORKSPACE</small>
+
         <a className="nav active" href="#overview">
           ▦ Overview
         </a>
+
         <a className="nav" href="#trends">
           ⌁ Spending trends
         </a>
+
+        {/* PR #14: State Comparison navigation */}
+        <a className="nav" href="#state-comparison">
+          ⇄ State comparison
+        </a>
+
         <a className="nav" href="#provenance">
           ◎ Data provenance
         </a>
+
         <div className="sidebottom">
           <b>● RBI e-STATES</b>
           <p>Evidence-first public finance exploration.</p>
@@ -222,6 +267,7 @@ export default function App() {
               Explore state finances through transparent, source-backed data.
             </p>
           </div>
+
           <div className="heading-actions">
             <button
               type="button"
@@ -231,6 +277,7 @@ export default function App() {
             >
               {exporting ? "Preparing CSV…" : "↓ Export CSV"}
             </button>
+
             <button type="button" onClick={refreshDashboard}>
               ↻ <span>Refresh</span>
             </button>
@@ -243,7 +290,12 @@ export default function App() {
               <b>CSV export failed.</b>
               <p>{exportError}</p>
             </div>
-            <button type="button" onClick={exportCsv} disabled={exporting}>
+
+            <button
+              type="button"
+              onClick={exportCsv}
+              disabled={exporting}
+            >
               Try again
             </button>
           </div>
@@ -253,6 +305,7 @@ export default function App() {
           <div className="filterhead">
             <b>Filters</b>
             <span>Refine the data shown below</span>
+
             <button
               type="button"
               onClick={() => {
@@ -273,6 +326,7 @@ export default function App() {
               disabled={optionsBusy}
             >
               <option value="">All states / UTs</option>
+
               {states.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
@@ -287,6 +341,7 @@ export default function App() {
               disabled={optionsBusy}
             >
               <option value="">All fiscal years</option>
+
               {years.map((item) => (
                 <option key={item} value={item}>
                   {item}
@@ -294,7 +349,11 @@ export default function App() {
               ))}
             </Field>
 
-            <Field label="Budget category" value={cat} onChange={setCat}>
+            <Field
+              label="Budget category"
+              value={cat}
+              onChange={setCat}
+            >
               {cats.map((item) => (
                 <option key={item[0]} value={item[0]}>
                   {item[1]}
@@ -310,6 +369,7 @@ export default function App() {
               <b>We couldn't load the dashboard.</b>
               <p>{error}</p>
             </div>
+
             <button type="button" onClick={refreshDashboard}>
               Try again
             </button>
@@ -322,6 +382,7 @@ export default function App() {
               <h2>Key indicators</h2>
               <p>Aggregated values for the selected records</p>
             </div>
+
             <span>
               {selectedState}
               {selectedCategory ? ` · ${selectedCategory}` : ""}
@@ -335,18 +396,21 @@ export default function App() {
               note="Matching source records"
               icon="▤"
             />
+
             <Metric
               label="Account"
               value={busy ? "…" : fmt(summary?.total_account)}
               note="Actual account values"
               icon="₹"
             />
+
             <Metric
               label="Revised"
               value={busy ? "…" : fmt(summary?.total_revised)}
               note="Revised estimates"
               icon="↗"
             />
+
             <Metric
               label="Budget"
               value={busy ? "…" : fmt(summary?.total_budget)}
@@ -364,12 +428,21 @@ export default function App() {
                 Annual aggregates across the selected state and category
               </p>
             </div>
+
             <span>{year || "All available years"}</span>
           </div>
+
           <article className="chartcard">
             <Chart items={trends} loading={busy} />
           </article>
         </section>
+
+        {/* PR #14: State Comparison section */}
+        <StateComparison
+          states={states}
+          years={years}
+          categories={cats}
+        />
 
         <section className="block" id="provenance">
           <div className="sectiontitle">
@@ -379,8 +452,10 @@ export default function App() {
                 Source metadata and recorded ingestion checks for transparency
               </p>
             </div>
+
             <span>Source-backed metadata</span>
           </div>
+
           <ProvenanceQuality
             sources={sources}
             quality={quality}
@@ -391,7 +466,9 @@ export default function App() {
 
         <footer>
           <span>FundScope · Data-led public finance exploration</span>
-          <span>Source metadata is shown as recorded in the database.</span>
+          <span>
+            Source metadata is shown as recorded in the database.
+          </span>
         </footer>
       </main>
     </div>
