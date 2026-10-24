@@ -1,0 +1,128 @@
+.comparison-panel {
+  padding: 18px;
+  background: #fff;
+  border: 1px solid #e8ece9;
+  border-radius: 11px;
+  box-shadow: 0 2px 10px #18312605;
+}
+
+.comparison-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.comparison-message {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px dashed #dce5df;
+  border-radius: 9px;
+  color: #77847d;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.comparison-error {
+  border-style: solid;
+  border-color: #f0c9c4;
+  background: #fff7f5;
+  color: #8d3028;
+}
+
+.comparison-retry {
+  display: block;
+  margin: 10px auto 0;
+  border: 1px solid #e7b4ae;
+  border-radius: 7px;
+  padding: 7px 10px;
+  background: #fff;
+  color: #8d3028;
+  cursor: pointer;
+  font: inherit;
+}
+
+.comparison-table-wrap {
+  margin-top: 18px;
+  overflow-x: auto;
+  border: 1px solid #e8ece9;
+  border-radius: 9px;
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.comparison-table caption {
+  padding: 12px 14px;
+  background: #f7f9f8;
+  color: #7c8983;
+  text-align: left;
+  white-space: normal;
+  line-height: 1.5;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 13px 14px;
+  border-top: 1px solid #edf0ee;
+}
+
+.comparison-table thead th {
+  background: #f5f8f6;
+  color: #6e7d76;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.comparison-table tbody th {
+  color: #34463e;
+  font-weight: 600;
+}
+
+.comparison-table td {
+  color: #52645b;
+  font-variant-numeric: tabular-nums;
+}
+
+.comparison-positive {
+  color: #176c4c !important;
+  font-weight: 700;
+}
+
+.comparison-negative {
+  color: #a34337 !important;
+  font-weight: 700;
+}
+
+.comparison-footnote {
+  margin: 11px 0 0;
+  color: #929d97;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+@media (max-width: 1000px) {
+  .comparison-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .comparison-panel {
+    padding: 12px;
+  }
+
+  .comparison-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .comparison-table th,
+  .comparison-table td {
+    padding: 11px 10px;
+  }
+}
