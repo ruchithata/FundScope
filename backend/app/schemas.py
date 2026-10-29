@@ -97,6 +97,7 @@ class SpendingAnomalyItem(BaseModel):
     upper_bound: float
     sample_size: int
     direction: Literal["high", "low"]
+    source_row_count: int = 1
 
 
 class SpendingAnomalyResponse(BaseModel):
@@ -105,6 +106,9 @@ class SpendingAnomalyResponse(BaseModel):
     groups_checked: int
     minimum_group_size: int
     method: str
+    groups_skipped_small: int = 0
+    skipped_missing_values: int = 0
+    states_compared: int = 0
 
 
 class ErrorResponse(BaseModel):

@@ -1,5 +1,6 @@
 """IQR-based spending outlier analysis for FundScope."""
 from collections import defaultdict
+from math import isfinite
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -17,7 +18,7 @@ def _quantile(values: list[float], probability: float) -> float:
     lower = int(position)
     upper = min(lower + 1, len(values) - 1)
     fraction = position - lower
-    return values[lower] + fraction * (values[upper] - values[lower])
+    return values[lower] + (values[upper] - values[lower]) * fraction
 
 
 def get_spending_anomalies(
@@ -27,7 +28,12 @@ def get_spending_anomalies(
     appendix: str | None = None,
     metric: str = "budget",
 ) -> dict:
-    """Find outliers among states within each budget-head/fiscal-year group."""
+    """Find outliers among states within each budget-head/fiscal-year group.
+
+    Duplicate rows for a state within the same budget-head/year are collapsed
+    to that state's mean before peer quartiles are calculated. Aggregate rows
+    such as "All States/UT" are excluded to avoid double counting.
+    """
     columns = {
         "account": SpendingRecord.account,
         "revised": SpendingRecord.revised,
@@ -56,28 +62,45 @@ def get_spending_anomalies(
         statement = statement.where(BudgetHead.appendix == appendix)
 
     rows = db.execute(statement).mappings().all()
-    groups: dict[tuple[str, int], list[dict]] = defaultdict(list)
+    state_values: dict[tuple[str, int, str], list[float]] = defaultdict(list)
+    metadata: dict[tuple[str, int, str], dict] = {}
     checked_records = 0
+    skipped_missing_values = 0
 
     for row in rows:
         if row["value"] is None:
+            skipped_missing_values += 1
             continue
-        entry = {
+        value = float(row["value"])
+        if not isfinite(value):
+            skipped_missing_values += 1
+            continue
+
+        key = (row["fiscal_year"], row["budget_head_id"], row["state_name"])
+        state_values[key].append(value)
+        metadata[key] = {
             "state_name": row["state_name"],
-            "budget_head_id": row["budget_head_id"],
             "budget_head": row["budget_head"],
             "appendix": row["appendix"],
             "fiscal_year": row["fiscal_year"],
-            "value": float(row["value"]),
         }
-        groups[(row["fiscal_year"], row["budget_head_id"])].append(entry)
         checked_records += 1
+
+    # One point per state in each comparison group; duplicate source rows
+    # do not get extra weight in the quartile calculation.
+    peer_groups: dict[tuple[str, int], list[dict]] = defaultdict(list)
+    for key, values in state_values.items():
+        entry = dict(metadata[key])
+        entry["value"] = sum(values) / len(values)
+        entry["source_row_count"] = len(values)
+        peer_groups[(key[0], key[1])].append(entry)
 
     anomalies = []
     groups_checked = 0
-    for entries in groups.values():
-        # Avoid making quartile claims from very small peer groups.
+    groups_skipped_small = 0
+    for entries in peer_groups.values():
         if len(entries) < MINIMUM_GROUP_SIZE:
+            groups_skipped_small += 1
             continue
 
         values = sorted(entry["value"] for entry in entries)
@@ -96,6 +119,7 @@ def get_spending_anomalies(
                 direction = "high"
             else:
                 continue
+
             anomalies.append({
                 "state_name": entry["state_name"],
                 "budget_head": entry["budget_head"],
@@ -110,6 +134,7 @@ def get_spending_anomalies(
                 "upper_bound": upper_bound,
                 "sample_size": len(values),
                 "direction": direction,
+                "source_row_count": entry["source_row_count"],
             })
 
     anomalies.sort(
@@ -125,6 +150,9 @@ def get_spending_anomalies(
         "items": anomalies,
         "checked_records": checked_records,
         "groups_checked": groups_checked,
+        "groups_skipped_small": groups_skipped_small,
+        "skipped_missing_values": skipped_missing_values,
+        "states_compared": len({key[2] for key in state_values}),
         "minimum_group_size": MINIMUM_GROUP_SIZE,
         "method": "IQR",
     }
