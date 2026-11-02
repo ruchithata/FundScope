@@ -60,7 +60,7 @@ export default function SpendingAnomalies({ states, years, categories }) {
       <div className="panel">
         <p className="notice">IQR limits are calculated across all eligible states first. The state filter only narrows displayed results; it does not recalculate the limits.</p>
         <div className="anomaly-filters">
-          <Field label="State / UT (display filter)" value={stateName} onChange={setStateName}>
+          <Field label="State / UT (display filter)" value={stateName} onChange={(value) => { setStateName(value); setPage(1); }}>
             <option value="">All states / UTs</option>
             {stateOptions.map((item) => <option key={item.id ?? item.name} value={item.name}>{item.name}</option>)}
           </Field>
