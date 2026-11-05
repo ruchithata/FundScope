@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 const links = [
   ["#overview", "▦", "Overview"],
   ["#trends", "⌁", "Spending trends"],
+  ["#budget-breakdown", "▤", "Budget breakdown"],
   ["#anomalies", "⚠", "Spending anomalies"],
   ["#state-comparison", "⇄", "State comparison"],
   ["#provenance", "◎", "Data provenance"],
@@ -12,9 +13,7 @@ export default function Sidebar() {
   const [active, setActive] = useState("#overview");
 
   useEffect(() => {
-    const sections = links
-      .map(([href]) => document.querySelector(href))
-      .filter(Boolean);
+    const sections = links.map(([href]) => document.querySelector(href)).filter(Boolean);
     if (!sections.length) return undefined;
 
     const observer = new IntersectionObserver((entries) => {

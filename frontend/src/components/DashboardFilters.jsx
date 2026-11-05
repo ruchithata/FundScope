@@ -1,14 +1,17 @@
 import Field from "./Field";
+import { CATEGORIES } from "../constants";
 
-export const CATEGORIES = [
-  ["", "All appendices"],
-  ["Appendix-1", "Revenue receipts"],
-  ["Appendix-2", "Revenue expenditure"],
-  ["Appendix-3", "Capital receipts"],
-  ["Appendix-4", "Capital expenditure"],
-];
-
-export default function DashboardFilters({ states, years, state, year, category, setState, setYear, setCategory, disabled }) {
+export default function DashboardFilters({
+  states,
+  years,
+  state,
+  year,
+  category,
+  setState,
+  setYear,
+  setCategory,
+  disabled,
+}) {
   return (
     <section className="filters" aria-label="Global dashboard filters">
       <div className="filterhead">

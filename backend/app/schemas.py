@@ -111,6 +111,22 @@ class SpendingAnomalyResponse(BaseModel):
     states_compared: int = 0
 
 
+class BudgetBreakdownItem(BaseModel):
+    budget_head_id: int
+    budget_head: str
+    appendix: str
+    record_count: int
+    total_account: Decimal
+    total_revised: Decimal
+    total_budget: Decimal
+    utilization_percent: float | None
+
+
+class BudgetBreakdownResponse(BaseModel):
+    fiscal_year: str
+    items: list[BudgetBreakdownItem]
+
+
 class ErrorResponse(BaseModel):
     detail: str
 

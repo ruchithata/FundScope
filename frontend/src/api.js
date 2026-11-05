@@ -3,20 +3,23 @@ const BASE = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000").repl
 async function get(path, signal) {
   let response;
   try {
-    response = await fetch(`${BASE}${path}`, {
-      headers: { Accept: "application/json" },
-      signal,
-    });
+    response = await fetch(`${BASE}${path}`, { headers: { Accept: "application/json" }, signal });
   } catch (error) {
     if (error.name === "AbortError") throw error;
-    throw new Error("Cannot reach the FundScope API. Check that FastAPI is running and VITE_API_BASE_URL is correct.");
+    throw new Error(
+      "Cannot reach the FundScope API. Check that FastAPI is running and VITE_API_BASE_URL is correct.",
+      { cause: error },
+    );
   }
+
   if (!response.ok) {
     let message = `API request failed (${response.status}).`;
     try {
       const body = await response.json();
       if (typeof body.detail === "string") message = body.detail;
-    } catch {}
+    } catch {
+      // The server may return an empty or non-JSON error response.
+    }
     throw new Error(message);
   }
   return response.json();
@@ -44,6 +47,7 @@ export const api = {
   dataSources: (signal) => get("/api/data-sources", signal),
   dataQuality: (signal) => get("/api/data-quality", signal),
   anomalies: (filters, signal) => get(`/api/anomalies${qs(filters)}`, signal),
+  budgetBreakdown: (filters, signal) => get(`/api/budget-breakdown${qs(filters)}`, signal),
   async exportCsv(filters) {
     const response = await fetch(`${BASE}/api/spending/export.csv${qs(filters)}`, {
       headers: { Accept: "text/csv" },
@@ -53,7 +57,9 @@ export const api = {
       try {
         const body = await response.json();
         if (typeof body.detail === "string") message = body.detail;
-      } catch {}
+      } catch {
+        // The export endpoint may return an empty or non-JSON error response.
+      }
       throw new Error(message);
     }
     return response.blob();

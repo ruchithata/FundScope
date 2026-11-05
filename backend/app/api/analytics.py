@@ -9,6 +9,7 @@ from app.config import get_settings
 from app.dependencies import get_db
 from app.models import DataQuality, DataSource
 from app.schemas import (
+    BudgetBreakdownResponse,
     BudgetHeadResponse,
     DataQualityResponse,
     DataSourceResponse,
@@ -21,6 +22,7 @@ from app.schemas import (
     StateResponse,
 )
 from app.services.analytics import (
+    get_budget_breakdown,
     get_budget_heads,
     get_fiscal_years,
     get_spending_records,
@@ -62,18 +64,12 @@ def list_spending(
     db: Session = Depends(get_db),
 ):
     records, total = get_spending_records(
-        db,
-        state_id=state_id,
-        fiscal_year=fiscal_year,
-        budget_head_id=budget_head_id,
-        appendix=appendix,
-        page=page,
-        page_size=page_size,
+        db, state_id=state_id, fiscal_year=fiscal_year,
+        budget_head_id=budget_head_id, appendix=appendix,
+        page=page, page_size=page_size,
     )
     return {
-        "items": records,
-        "total": total,
-        "page": page,
+        "items": records, "total": total, "page": page,
         "page_size": page_size,
         "total_pages": ceil(total / page_size) if total else 0,
     }
@@ -88,11 +84,8 @@ def spending_summary(
     db: Session = Depends(get_db),
 ):
     return get_spending_summary(
-        db,
-        state_id=state_id,
-        fiscal_year=fiscal_year,
-        budget_head_id=budget_head_id,
-        appendix=appendix,
+        db, state_id=state_id, fiscal_year=fiscal_year,
+        budget_head_id=budget_head_id, appendix=appendix,
     )
 
 
@@ -104,10 +97,7 @@ def spending_trends(
     db: Session = Depends(get_db),
 ):
     rows = get_spending_trend(
-        db,
-        state_id=state_id,
-        budget_head_id=budget_head_id,
-        appendix=appendix,
+        db, state_id=state_id, budget_head_id=budget_head_id, appendix=appendix
     )
     return {"items": [SpendingTrendItem.model_validate(row) for row in rows]}
 
@@ -121,11 +111,24 @@ def spending_anomalies(
 ):
     """Return IQR outliers among comparable state spending records."""
     return get_spending_anomalies(
-        db,
-        fiscal_year=fiscal_year,
-        appendix=appendix,
-        metric=metric,
+        db, fiscal_year=fiscal_year, appendix=appendix, metric=metric
     )
+
+
+@router.get("/budget-breakdown", response_model=BudgetBreakdownResponse)
+def budget_breakdown(
+    fiscal_year: str = Query(..., min_length=9, max_length=20),
+    state_id: int | None = Query(default=None, ge=1),
+    appendix: str | None = Query(default=None, min_length=1, max_length=50),
+    db: Session = Depends(get_db),
+):
+    """Return annual financial totals grouped by budget head."""
+    return {
+        "fiscal_year": fiscal_year,
+        "items": get_budget_breakdown(
+            db, fiscal_year=fiscal_year, state_id=state_id, appendix=appendix
+        ),
+    }
 
 
 @router.get("/data-sources", response_model=list[DataSourceResponse])
