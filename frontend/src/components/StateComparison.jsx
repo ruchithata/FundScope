@@ -33,12 +33,15 @@ export default function StateComparison({ states, years, categories }) {
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const choices = useMemo(() => states.filter((s) => !isAggregate(s.name)), [states]);
+  const validSelection = Boolean(stateA && stateB && stateA !== stateB);
 
   useEffect(() => {
-    if (!stateA || !stateB || stateA === stateB) { setData(null); setLoading(false); setError(""); return undefined; }
+    if (!validSelection) return undefined;
+
     const controller = new AbortController();
     async function load() {
-      setLoading(true); setError("");
+      setLoading(true);
+      setError("");
       try {
         const [a, b] = await Promise.all([
           api.summary({ state_id: stateA, fiscal_year: year, appendix: category }, controller.signal),
@@ -46,12 +49,17 @@ export default function StateComparison({ states, years, categories }) {
         ]);
         if (!controller.signal.aborted) setData({ a, b });
       } catch (err) {
-        if (!controller.signal.aborted && err.name !== "AbortError") { setData(null); setError(err.message || "Unable to load comparison."); }
-      } finally { if (!controller.signal.aborted) setLoading(false); }
+        if (!controller.signal.aborted && err.name !== "AbortError") {
+          setData(null);
+          setError(err.message || "Unable to load comparison.");
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
     }
     load();
     return () => controller.abort();
-  }, [stateA, stateB, year, category, retry]);
+  }, [stateA, stateB, year, category, retry, validSelection]);
 
   const nameA = choices.find((s) => String(s.id) === stateA)?.name || "State A";
   const nameB = choices.find((s) => String(s.id) === stateB)?.name || "State B";
@@ -67,18 +75,18 @@ export default function StateComparison({ states, years, categories }) {
       </div>
       {!stateA || !stateB ? <div className="state-message">Select two states to view their financial indicators.</div>
         : stateA === stateB ? <div className="state-message error-text">Choose two different states to compare.</div>
-        : loading ? <div className="state-message" role="status">Loading comparison data…</div>
-        : error ? <div className="error" role="alert"><p>{error}</p><button onClick={() => setRetry((n) => n + 1)}>Retry</button></div>
-        : data ? <>
-          <div className="table-wrap"><table><caption>Differences are calculated as {nameB} minus {nameA}.</caption>
-            <thead><tr><th>Indicator</th><th>{nameA}</th><th>{nameB}</th><th>Difference (B − A)</th><th>Change vs. A</th></tr></thead>
-            <tbody>{METRICS.map(([key, label]) => {
-              const a = Number(data.a[key] ?? 0); const b = Number(data.b[key] ?? 0); const diff = b - a;
-              return <tr key={key}><th>{label}</th><td>{fmt(data.a[key])}</td><td>{fmt(data.b[key])}</td><td className={diff > 0 ? "positive" : diff < 0 ? "negative" : ""}>{signed(diff)}</td><td>{percentage(a, b)}</td></tr>;
-            })}</tbody>
-          </table></div>
-          <p className="muted small">A positive difference means the second state has a higher value. “N/A” indicates percentage change cannot be calculated from a zero baseline.</p>
-        </> : null}
+          : loading ? <div className="state-message" role="status">Loading comparison data…</div>
+            : error ? <div className="error" role="alert"><p>{error}</p><button onClick={() => setRetry((n) => n + 1)}>Retry</button></div>
+              : data ? <>
+                <div className="table-wrap"><table><caption>Differences are calculated as {nameB} minus {nameA}.</caption>
+                  <thead><tr><th>Indicator</th><th>{nameA}</th><th>{nameB}</th><th>Difference (B − A)</th><th>Change vs. A</th></tr></thead>
+                  <tbody>{METRICS.map(([key, label]) => {
+                    const a = Number(data.a[key] ?? 0); const b = Number(data.b[key] ?? 0); const diff = b - a;
+                    return <tr key={key}><th>{label}</th><td>{fmt(data.a[key])}</td><td>{fmt(data.b[key])}</td><td className={diff > 0 ? "positive" : diff < 0 ? "negative" : ""}>{signed(diff)}</td><td>{percentage(a, b)}</td></tr>;
+                  })}</tbody>
+                </table></div>
+                <p className="muted small">A positive difference means the second state has a higher value. “N/A” indicates percentage change cannot be calculated from a zero baseline.</p>
+              </> : null}
     </div>
   </section>;
 }
