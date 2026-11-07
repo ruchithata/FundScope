@@ -78,15 +78,31 @@ export default function StateComparison({ states, years, categories }) {
           : loading ? <div className="state-message" role="status">Loading comparison data…</div>
             : error ? <div className="error" role="alert"><p>{error}</p><button onClick={() => setRetry((n) => n + 1)}>Retry</button></div>
               : data ? <>
-                <div className="table-wrap"><table><caption>Differences are calculated as {nameB} minus {nameA}.</caption>
+                <ComparisonInsight data={data} nameA={nameA} nameB={nameB} />
+                <details className="refinement-details">
+                  <summary>View details <span>All indicators</span></summary>
+                  <div className="table-wrap"><table><caption>Differences are calculated as {nameB} minus {nameA}.</caption>
                   <thead><tr><th>Indicator</th><th>{nameA}</th><th>{nameB}</th><th>Difference (B − A)</th><th>Change vs. A</th></tr></thead>
                   <tbody>{METRICS.map(([key, label]) => {
                     const a = Number(data.a[key] ?? 0); const b = Number(data.b[key] ?? 0); const diff = b - a;
                     return <tr key={key}><th>{label}</th><td>{fmt(data.a[key])}</td><td>{fmt(data.b[key])}</td><td className={diff > 0 ? "positive" : diff < 0 ? "negative" : ""}>{signed(diff)}</td><td>{percentage(a, b)}</td></tr>;
                   })}</tbody>
-                </table></div>
-                <p className="muted small">A positive difference means the second state has a higher value. “N/A” indicates percentage change cannot be calculated from a zero baseline.</p>
+                  </table></div>
+                  <p className="muted small">A positive difference means the second state has a higher value. “N/A” indicates percentage change cannot be calculated from a zero baseline.</p>
+                </details>
               </> : null}
     </div>
   </section>;
+}
+
+function ComparisonInsight({ data, nameA, nameB }) {
+  const largest = METRICS
+    .map(([key, label]) => ({ key, label, difference: Number(data.b[key] ?? 0) - Number(data.a[key] ?? 0) }))
+    .sort((a, b) => Math.abs(b.difference) - Math.abs(a.difference))[0];
+  const direction = largest.difference > 0 ? nameB : largest.difference < 0 ? nameA : "Neither state";
+  return <article className="comparison-insight">
+    <span>Most notable difference</span>
+    <strong>{direction} leads on {largest.label}</strong>
+    <p>{largest.difference ? `${signed(Math.abs(largest.difference))} compared with the other selected state.` : "The selected states have the same value for every indicator."}</p>
+  </article>;
 }
