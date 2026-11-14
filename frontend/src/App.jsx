@@ -11,6 +11,7 @@ import StateComparison from "./components/StateComparison";
 import ProvenanceQuality from "./components/ProvenanceQuality";
 import { CATEGORIES } from "./constants";
 import { fmt } from "./utils/formatters";
+import "./dashboard-refinement.css";
 
 export default function App() {
   const [states, setStates] = useState([]);

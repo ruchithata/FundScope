@@ -110,7 +110,9 @@ export default function SpendingAnomalies({ states, years, categories }) {
                 <article><span>Unusually low</span><strong>{fmt(low)}</strong></article>
                 <article><span>Affected states / UTs</span><strong>{fmt(affected)}</strong></article>
               </div>
-              <p className="muted small">Checked {fmt(result.checked_records)} eligible records across {fmt(result.groups_checked)} comparable groups. Detection baseline includes all eligible states.</p>
+              <details className="refinement-details anomaly-details">
+                <summary>View details <span>{fmt(result.checked_records)} records checked</span></summary>
+                <p className="muted small">Checked {fmt(result.checked_records)} eligible records across {fmt(result.groups_checked)} comparable groups. Detection baseline includes all eligible states.</p>
               {visible.length === 0 ? <div className="empty-box"><b>{Number(result.checked_records) === 0 ? "No eligible records were analyzed" : "No statistical outliers found"}</b><p>{Number(result.checked_records) === 0
                 ? "The API returned no eligible records for this metric and filter combination. Confirm that the backend anomaly endpoint is connected to the cleaned dataset and uses the selected metric names: budget, revised, or account."
                 : stateName ? `No anomalies were returned for ${stateName} under these filters.` : "The selected records did not contain values outside the IQR limits."} Try another state, fiscal year, or category.</p></div>
@@ -133,6 +135,7 @@ export default function SpendingAnomalies({ states, years, categories }) {
                   </nav>}
                 </>}
               <details className="method"><summary>How is this calculated?</summary><p>Each group contains comparable records for one budget head in one fiscal year.</p><p><code>IQR = Q3 − Q1</code></p><p><code>Lower limit = Q1 − 1.5 × IQR</code></p><p><code>Upper limit = Q3 + 1.5 × IQR</code></p><p>Aggregate All States/UT rows and groups with fewer than four non-empty records should be excluded by the backend.</p></details>
+              </details>
               <p className="muted small">A statistical outlier is a signal for further investigation, not evidence of an error or wrongdoing. Currency units follow the source dataset.</p>
             </> : null}
       </div>
