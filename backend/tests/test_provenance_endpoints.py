@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -58,20 +58,22 @@ def test_provenance_endpoints_return_recorded_metadata(client):
         publisher="Reserve Bank of India",
         source_url="https://www.rbi.org.in/",
         dataset_name="State Finances: A Study of Budgets",
-        retrieved_at=datetime(2026, 1, 15, tzinfo=timezone.utc),
+        retrieved_at=datetime(2026, 1, 15, tzinfo=UTC),
         methodology="Original negative values retained.",
     )
     db.add(source)
     db.flush()
-    db.add(DataQuality(
-        source_id=source.id,
-        total_records=10,
-        missing_account=1,
-        missing_revised=2,
-        missing_budget=0,
-        duplicate_records=0,
-        quality_score=Decimal("97.00"),
-    ))
+    db.add(
+        DataQuality(
+            source_id=source.id,
+            total_records=10,
+            missing_account=1,
+            missing_revised=2,
+            missing_budget=0,
+            duplicate_records=0,
+            quality_score=Decimal("97.00"),
+        )
+    )
     db.commit()
     db.close()
 

@@ -6,10 +6,7 @@ def test_alembic_configuration_exists():
     config_path = backend_dir / "alembic.ini"
     env_path = backend_dir / "migrations" / "env.py"
     migration_path = (
-        backend_dir
-        / "migrations"
-        / "versions"
-        / "0001_add_data_provenance.py"
+        backend_dir / "migrations" / "versions" / "0001_add_data_provenance.py"
     )
 
     assert config_path.exists()
@@ -20,10 +17,7 @@ def test_alembic_configuration_exists():
 def test_migration_has_expected_revision():
     backend_dir = Path(__file__).resolve().parents[1]
     migration = (
-        backend_dir
-        / "migrations"
-        / "versions"
-        / "0001_add_data_provenance.py"
+        backend_dir / "migrations" / "versions" / "0001_add_data_provenance.py"
     ).read_text(encoding="utf-8")
 
     assert 'revision: str = "0001_add_data_provenance"' in migration

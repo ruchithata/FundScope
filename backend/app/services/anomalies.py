@@ -1,4 +1,5 @@
 """IQR-based spending outlier analysis for FundScope."""
+
 from collections import defaultdict
 from math import isfinite
 
@@ -120,27 +121,31 @@ def get_spending_anomalies(
             else:
                 continue
 
-            anomalies.append({
-                "state_name": entry["state_name"],
-                "budget_head": entry["budget_head"],
-                "appendix": entry["appendix"],
-                "fiscal_year": entry["fiscal_year"],
-                "metric": metric,
-                "value": value,
-                "q1": q1,
-                "q3": q3,
-                "iqr": iqr,
-                "lower_bound": lower_bound,
-                "upper_bound": upper_bound,
-                "sample_size": len(values),
-                "direction": direction,
-                "source_row_count": entry["source_row_count"],
-            })
+            anomalies.append(
+                {
+                    "state_name": entry["state_name"],
+                    "budget_head": entry["budget_head"],
+                    "appendix": entry["appendix"],
+                    "fiscal_year": entry["fiscal_year"],
+                    "metric": metric,
+                    "value": value,
+                    "q1": q1,
+                    "q3": q3,
+                    "iqr": iqr,
+                    "lower_bound": lower_bound,
+                    "upper_bound": upper_bound,
+                    "sample_size": len(values),
+                    "direction": direction,
+                    "source_row_count": entry["source_row_count"],
+                }
+            )
 
     anomalies.sort(
         key=lambda item: abs(
-            item["value"] - (
-                item["lower_bound"] if item["direction"] == "low"
+            item["value"]
+            - (
+                item["lower_bound"]
+                if item["direction"] == "low"
                 else item["upper_bound"]
             )
         ),

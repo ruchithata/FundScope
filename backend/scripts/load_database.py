@@ -60,7 +60,9 @@ def calculate_quality_metrics(df: pd.DataFrame) -> dict[str, int | float]:
 
 
 def validate_dataset(df: pd.DataFrame) -> None:
-    missing_columns = [column for column in REQUIRED_COLUMNS if column not in df.columns]
+    missing_columns = [
+        column for column in REQUIRED_COLUMNS if column not in df.columns
+    ]
     if missing_columns:
         raise ValueError(f"Missing required columns: {missing_columns}")
 
@@ -114,7 +116,9 @@ def load_budget_heads(session: Session, df: pd.DataFrame) -> dict[tuple[str, str
     existing = session.scalars(select(BudgetHead)).all()
     lookup = {(head.name, head.appendix): head.id for head in existing}
 
-    for row in df[["Budget Head", "Appendix"]].drop_duplicates().itertuples(index=False):
+    for row in (
+        df[["Budget Head", "Appendix"]].drop_duplicates().itertuples(index=False)
+    ):
         key = (row[0], row[1])
         if key not in lookup:
             budget_head = BudgetHead(name=row[0], appendix=row[1])
@@ -134,9 +138,7 @@ def load_spending_records(
     # Replace the existing dataset for this source inside the same transaction.
     # This makes reruns idempotent without relying on an unverified row-grain
     # uniqueness constraint.
-    session.execute(
-        delete(SpendingRecord).where(SpendingRecord.source_id == source_id)
-    )
+    session.execute(delete(SpendingRecord).where(SpendingRecord.source_id == source_id))
 
     total_loaded = 0
     for start in range(0, len(df), BATCH_SIZE):
@@ -144,7 +146,15 @@ def load_spending_records(
         records = []
 
         for row in batch.itertuples(index=False):
-            appendix, state_name, budget_head_name, fiscal_year, account, revised, budget = row
+            (
+                appendix,
+                state_name,
+                budget_head_name,
+                fiscal_year,
+                account,
+                revised,
+                budget,
+            ) = row
             records.append(
                 SpendingRecord(
                     state_id=state_lookup[state_name],

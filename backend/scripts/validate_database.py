@@ -22,8 +22,7 @@ def calculate_quality_score(df: pd.DataFrame) -> float:
         return 0.0
 
     missing_total = sum(
-        int(df[column].isna().sum())
-        for column in ["Account", "Revised", "Budget"]
+        int(df[column].isna().sum()) for column in ["Account", "Revised", "Budget"]
     )
     duplicate_count = int(df.duplicated().sum())
 
@@ -45,9 +44,7 @@ def validate_database():
     expected_score = calculate_quality_score(df)
 
     with Session(engine) as session:
-        source = session.scalar(
-            select(DataSource).order_by(DataSource.id)
-        )
+        source = session.scalar(select(DataSource).order_by(DataSource.id))
         if source is None:
             raise ValueError("No data source found.")
 
@@ -58,9 +55,7 @@ def validate_database():
         )
 
         quality = session.scalar(
-            select(DataQuality).where(
-                DataQuality.source_id == source.id
-            )
+            select(DataQuality).where(DataQuality.source_id == source.id)
         )
         if quality is None:
             raise ValueError("No data quality record found.")

@@ -131,5 +131,25 @@ class ErrorResponse(BaseModel):
     detail: str
 
 
+class IngestionRunResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    dataset_name: str
+    source_file: str
+    started_at: datetime
+    completed_at: datetime | None
+    records_processed: int
+    records_succeeded: int
+    records_rejected: int
+    duplicate_records: int
+    status: Literal["running", "completed", "failed"]
+    error_message: str | None = None
+
+
+class IngestionRunRequest(BaseModel):
+    source_file: str | None = None
+    dataset_name: str = "RBI e-STATES Database"
+
+
 class HealthResponse(BaseModel):
     status: str

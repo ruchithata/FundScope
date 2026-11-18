@@ -12,7 +12,6 @@ from app.dependencies import get_db
 from app.main import app
 from app.models import BudgetHead, DataSource, SpendingRecord, State
 
-
 TEST_DATABASE_URL = "sqlite://"
 
 engine = create_engine(
@@ -89,27 +88,27 @@ def sample_data(db_session: Session):
             budget_head_id=revenue_head.id,
             source_id=source.id,
             fiscal_year="2025-2026",
-            account=Decimal("100"),
-            revised=Decimal("110"),
-            budget=Decimal("120"),
+            account=Decimal(100),
+            revised=Decimal(110),
+            budget=Decimal(120),
         ),
         SpendingRecord(
             state_id=karnataka.id,
             budget_head_id=revenue_head.id,
             source_id=source.id,
             fiscal_year="2024-2025",
-            account=Decimal("80"),
-            revised=Decimal("90"),
-            budget=Decimal("100"),
+            account=Decimal(80),
+            revised=Decimal(90),
+            budget=Decimal(100),
         ),
         SpendingRecord(
             state_id=kerala.id,
             budget_head_id=expenditure_head.id,
             source_id=source.id,
             fiscal_year="2025-2026",
-            account=Decimal("200"),
-            revised=Decimal("220"),
-            budget=Decimal("250"),
+            account=Decimal(200),
+            revised=Decimal(220),
+            budget=Decimal(250),
         ),
         # Deliberately large aggregate values make accidental double-counting
         # visible in the tests. This row should be included only when selected.
@@ -118,9 +117,9 @@ def sample_data(db_session: Session):
             budget_head_id=revenue_head.id,
             source_id=source.id,
             fiscal_year="2025-2026",
-            account=Decimal("999"),
-            revised=Decimal("1099"),
-            budget=Decimal("1199"),
+            account=Decimal(999),
+            revised=Decimal(1099),
+            budget=Decimal(1199),
         ),
     ]
 
@@ -213,8 +212,7 @@ def test_list_spending_with_pagination(
     assert data["total_pages"] == 2
     assert len(data["items"]) == 2
     assert all(
-        item["state_id"] != sample_data["aggregate"].id
-        for item in data["items"]
+        item["state_id"] != sample_data["aggregate"].id for item in data["items"]
     )
 
 
@@ -251,9 +249,9 @@ def test_spending_summary(
     data = response.json()
 
     assert data["total_records"] == 2
-    assert Decimal(data["total_account"]) == Decimal("180")
-    assert Decimal(data["total_revised"]) == Decimal("200")
-    assert Decimal(data["total_budget"]) == Decimal("220")
+    assert Decimal(data["total_account"]) == Decimal(180)
+    assert Decimal(data["total_revised"]) == Decimal(200)
+    assert Decimal(data["total_budget"]) == Decimal(220)
 
 
 def test_unfiltered_summary_excludes_aggregate_row(
@@ -265,9 +263,9 @@ def test_unfiltered_summary_excludes_aggregate_row(
     assert response.status_code == 200
     data = response.json()
     assert data["total_records"] == 3
-    assert Decimal(data["total_account"]) == Decimal("380")
-    assert Decimal(data["total_revised"]) == Decimal("420")
-    assert Decimal(data["total_budget"]) == Decimal("470")
+    assert Decimal(data["total_account"]) == Decimal(380)
+    assert Decimal(data["total_revised"]) == Decimal(420)
+    assert Decimal(data["total_budget"]) == Decimal(470)
 
 
 def test_selected_aggregate_state_is_still_available(
@@ -282,9 +280,9 @@ def test_selected_aggregate_state_is_still_available(
     assert response.status_code == 200
     data = response.json()
     assert data["total_records"] == 1
-    assert Decimal(data["total_account"]) == Decimal("999")
-    assert Decimal(data["total_revised"]) == Decimal("1099")
-    assert Decimal(data["total_budget"]) == Decimal("1199")
+    assert Decimal(data["total_account"]) == Decimal(999)
+    assert Decimal(data["total_revised"]) == Decimal(1099)
+    assert Decimal(data["total_budget"]) == Decimal(1199)
 
 
 def test_spending_trends(
@@ -302,10 +300,10 @@ def test_spending_trends(
     assert len(data["items"]) == 2
 
     assert data["items"][0]["fiscal_year"] == "2025-2026"
-    assert Decimal(data["items"][0]["total_account"]) == Decimal("100")
+    assert Decimal(data["items"][0]["total_account"]) == Decimal(100)
 
     assert data["items"][1]["fiscal_year"] == "2024-2025"
-    assert Decimal(data["items"][1]["total_account"]) == Decimal("80")
+    assert Decimal(data["items"][1]["total_account"]) == Decimal(80)
 
 
 def test_unfiltered_trends_exclude_aggregate_row(
@@ -317,9 +315,9 @@ def test_unfiltered_trends_exclude_aggregate_row(
     assert response.status_code == 200
     data = response.json()
     assert len(data["items"]) == 2
-    assert Decimal(data["items"][0]["total_account"]) == Decimal("300")
-    assert Decimal(data["items"][0]["total_revised"]) == Decimal("330")
-    assert Decimal(data["items"][0]["total_budget"]) == Decimal("370")
+    assert Decimal(data["items"][0]["total_account"]) == Decimal(300)
+    assert Decimal(data["items"][0]["total_revised"]) == Decimal(330)
+    assert Decimal(data["items"][0]["total_budget"]) == Decimal(370)
 
 
 def test_invalid_pagination_is_rejected(client: TestClient):

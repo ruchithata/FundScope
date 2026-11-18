@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.analytics import router as analytics_router
 from app.api.export import router as export_router
+from app.api.ingestion import router as ingestion_router
 from app.config import get_settings
 from app.schemas import ErrorResponse, HealthResponse
 
@@ -18,13 +19,15 @@ app = FastAPI(
     },
 )
 
-cors_origins = [origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()]
+cors_origins = [
+    origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()
+]
 if cors_origins:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
         allow_credentials=True,
-        allow_methods=["GET", "OPTIONS"],
+        allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["*"],
     )
 
@@ -36,3 +39,4 @@ def health_check() -> HealthResponse:
 
 app.include_router(analytics_router)
 app.include_router(export_router)
+app.include_router(ingestion_router)
