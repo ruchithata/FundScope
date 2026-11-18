@@ -2,11 +2,11 @@
 
 import csv
 import io
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from decimal import Decimal
 
 from app.dependencies import get_db
 from app.services.analytics import get_spending_records
@@ -14,6 +14,7 @@ from app.services.analytics import get_spending_records
 router = APIRouter(prefix="/api", tags=["export"])
 EXPORT_PAGE_SIZE = 500
 MAX_EXPORT_RECORDS = 100_000
+
 
 def _csv_value(value):
     """Serialize decimal values without converting them to float."""
@@ -23,13 +24,14 @@ def _csv_value(value):
         return str(value)
     return value
 
+
 @router.get("/spending/export.csv")
 def export_spending_csv(
     state_id: int | None = Query(default=None, ge=1),
     fiscal_year: str | None = Query(default=None, min_length=9, max_length=20),
     budget_head_id: int | None = Query(default=None, ge=1),
     appendix: str | None = Query(default=None, min_length=1, max_length=50),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db),  # noqa: B008
 ):
     """Export all matching records, refusing unexpectedly large exports.
 

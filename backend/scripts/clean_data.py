@@ -2,7 +2,6 @@ import os
 
 import pandas as pd
 
-
 FILE_PATH = "data/raw/estates.xlsx"
 OUTPUT_PATH = "data/processed/estates_cleaned.csv"
 
@@ -25,15 +24,10 @@ required_columns = [
     "Budget",
 ]
 
-missing_columns = [
-    column for column in required_columns
-    if column not in df.columns
-]
+missing_columns = [column for column in required_columns if column not in df.columns]
 
 if missing_columns:
-    raise ValueError(
-        f"Missing required columns: {missing_columns}"
-    )
+    raise ValueError(f"Missing required columns: {missing_columns}")
 
 print("Column validation passed.")
 
@@ -59,11 +53,7 @@ print("Text fields normalized.")
 
 
 # 5. Normalize budget-head spacing
-df["Budget Head"] = (
-    df["Budget Head"]
-    .str.replace(r"\s+", " ", regex=True)
-    .str.strip()
-)
+df["Budget Head"] = df["Budget Head"].str.replace(r"\s+", " ", regex=True).str.strip()
 
 print("Budget head spacing normalized.")
 
@@ -72,17 +62,11 @@ print("Budget head spacing normalized.")
 fiscal_year_pattern = r"^\d{4}-\d{4}$"
 
 invalid_fiscal_years = df.loc[
-    ~df["Fiscal Year"].str.match(
-        fiscal_year_pattern,
-        na=False
-    ),
-    "Fiscal Year"
+    ~df["Fiscal Year"].str.match(fiscal_year_pattern, na=False), "Fiscal Year"
 ].unique()
 
 if len(invalid_fiscal_years) > 0:
-    raise ValueError(
-        f"Invalid fiscal year values: {invalid_fiscal_years}"
-    )
+    raise ValueError(f"Invalid fiscal year values: {invalid_fiscal_years}")
 
 print("Fiscal year validation passed.")
 
@@ -95,10 +79,7 @@ numeric_columns = [
 ]
 
 for column in numeric_columns:
-    df[column] = pd.to_numeric(
-        df[column],
-        errors="coerce"
-    )
+    df[column] = pd.to_numeric(df[column], errors="coerce")
 
 print("Numeric fields validated.")
 
@@ -144,10 +125,7 @@ print("\nCategorical field validation passed.")
 # 12. Save processed dataset
 os.makedirs("data/processed", exist_ok=True)
 
-df.to_csv(
-    OUTPUT_PATH,
-    index=False
-)
+df.to_csv(OUTPUT_PATH, index=False)
 
 print(f"\nCleaned dataset saved to: {OUTPUT_PATH}")
 print("Final shape:", df.shape)

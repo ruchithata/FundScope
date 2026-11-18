@@ -13,8 +13,10 @@ def get_states(db: Session) -> Sequence[State]:
 
 
 def get_fiscal_years(db: Session) -> list[str]:
-    statement = select(SpendingRecord.fiscal_year).distinct().order_by(
-        SpendingRecord.fiscal_year.desc()
+    statement = (
+        select(SpendingRecord.fiscal_year)
+        .distinct()
+        .order_by(SpendingRecord.fiscal_year.desc())
     )
     return list(db.scalars(statement).all())
 
@@ -53,8 +55,14 @@ def build_spending_filters(
 
 
 def get_spending_records(
-    db: Session, *, state_id=None, fiscal_year=None, budget_head_id=None,
-    appendix=None, page=1, page_size=50,
+    db: Session,
+    *,
+    state_id=None,
+    fiscal_year=None,
+    budget_head_id=None,
+    appendix=None,
+    page=1,
+    page_size=50,
 ):
     filters = build_spending_filters(state_id, fiscal_year, budget_head_id, appendix)
     base = (
@@ -105,7 +113,9 @@ def get_spending_summary(
     }
 
 
-def get_spending_trend(db: Session, *, state_id=None, budget_head_id=None, appendix=None):
+def get_spending_trend(
+    db: Session, *, state_id=None, budget_head_id=None, appendix=None
+):
     filters = build_spending_filters(
         state_id=state_id, budget_head_id=budget_head_id, appendix=appendix
     )
@@ -126,7 +136,10 @@ def get_spending_trend(db: Session, *, state_id=None, budget_head_id=None, appen
 
 
 def get_budget_breakdown(
-    db: Session, *, fiscal_year: str, state_id: int | None = None,
+    db: Session,
+    *,
+    fiscal_year: str,
+    state_id: int | None = None,
     appendix: str | None = None,
 ):
     """Aggregate one fiscal year's financial values by budget head."""

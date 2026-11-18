@@ -3,10 +3,9 @@ from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import Text, TypeDecorator, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
-from sqlalchemy import TypeDecorator, Text
 
 from app.database import Base
 from app.dependencies import get_db
@@ -23,6 +22,7 @@ class ExactDecimal(TypeDecorator):
 
     def process_result_value(self, value, dialect):
         return None if value is None else Decimal(value)
+
 
 engine = create_engine(
     "sqlite://",
@@ -72,31 +72,53 @@ def sample_data(db_session: Session):
     head2 = BudgetHead(name="Education", appendix="Appendix-2")
     db_session.add_all([source, karnataka, kerala, head1, head2])
     db_session.flush()
-    db_session.add_all([
-        SpendingRecord(state_id=karnataka.id, budget_head_id=head1.id, source_id=source.id,
-                       fiscal_year="2025-2026", account=Decimal("1234567890.125"),
-                       revised=Decimal("110.20"), budget=Decimal("120.30")),
-        SpendingRecord(state_id=kerala.id, budget_head_id=head2.id, source_id=source.id,
-                       fiscal_year="2024-2025", account=Decimal("200"),
-                       revised=Decimal("220"), budget=Decimal("250")),
-    ])
+    db_session.add_all(
+        [
+            SpendingRecord(
+                state_id=karnataka.id,
+                budget_head_id=head1.id,
+                source_id=source.id,
+                fiscal_year="2025-2026",
+                account=Decimal("1234567890.125"),
+                revised=Decimal("110.20"),
+                budget=Decimal("120.30"),
+            ),
+            SpendingRecord(
+                state_id=kerala.id,
+                budget_head_id=head2.id,
+                source_id=source.id,
+                fiscal_year="2024-2025",
+                account=Decimal(200),
+                revised=Decimal(220),
+                budget=Decimal(250),
+            ),
+        ]
+    )
     db_session.commit()
     return {"karnataka": karnataka, "kerala": kerala, "head1": head1, "head2": head2}
 
 
-def test_csv_export_returns_attachment_and_exact_columns(client: TestClient, sample_data):
+def test_csv_export_returns_attachment_and_exact_columns(
+    client: TestClient, sample_data
+):
     response = client.get("/api/spending/export.csv")
     assert response.status_code == 200
     assert "text/csv" in response.headers["content-type"]
     assert "attachment;" in response.headers["content-disposition"]
     lines = response.content.decode("utf-8-sig").splitlines()
-    assert lines[0] == "record_id,state_id,budget_head_id,source_id,fiscal_year,account,revised,budget"
+    assert (
+        lines[0]
+        == "record_id,state_id,budget_head_id,source_id,fiscal_year,account,revised,budget"
+    )
     assert len(lines) == 3
     assert "1234567890.125" in response.text
 
 
 def test_csv_export_applies_filters(client: TestClient, sample_data):
-    response = client.get("/api/spending/export.csv", params={"state_id": sample_data["karnataka"].id, "appendix": "Appendix-1"})
+    response = client.get(
+        "/api/spending/export.csv",
+        params={"state_id": sample_data["karnataka"].id, "appendix": "Appendix-1"},
+    )
     assert response.status_code == 200
     lines = response.content.decode("utf-8-sig").splitlines()
     assert len(lines) == 2
@@ -109,7 +131,9 @@ def test_csv_export_rejects_invalid_filters(client: TestClient):
     assert response.status_code == 422
 
 
-def test_csv_export_preserves_negative_financial_values(client, db_session, sample_data):
+def test_csv_export_preserves_negative_financial_values(
+    client, db_session, sample_data
+):
     record = db_session.query(SpendingRecord).first()
     record.account = Decimal("-125.50")
     db_session.commit()
